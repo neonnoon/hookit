@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#
+# hookit or not — git hook manager.
+# https://github.com/neonnoon/hookit
+#
+# Executes multiple hooks.. Linked as actual hook in .git/hooks.
+
+set -euo pipefail
+
+source $(dirname $(realpath $(which hookit)))/hookit-common
+
+HOOKDIR=$(dirname $0)
+HOOKTYPE=$(basename $0)
+
+hookit_mux "$HOOKDIR" "$HOOKTYPE"

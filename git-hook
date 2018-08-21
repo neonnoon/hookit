@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#
+# hookit or not — git hook manager.
+# https://github.com/neonnoon/hookit
+#
+# Just a wrapper to enable "git hook".
+
+set -euo pipefail
+
+hookit "$@"

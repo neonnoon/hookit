@@ -1,0 +1,185 @@
+#!/usr/bin/env bash
+#
+# hookit or not — git hook manager.
+# https://github.com/neonnoon/hookit
+#
+# Here's the guts and stuff.
+
+set -euo pipefail
+
+# Allowed rc configs..
+HOOKS_BASE_PATH=
+
+# Optional rc file.
+HOOKITRC=~/.hookitrc
+[ -f $HOOKITRC ] && source $HOOKITRC
+
+# Some global stuffs, config kinda thing..
+AVAILABLE_HOOKS="applypatch-msg commit-msg fsmonitor-watchman post-update pre-applypatch pre-commit pre-push pre-rebase pre-receive prepare-commit-msg update"
+[ -n "$HOOKS_BASE_PATH" ] && HOOKBASE=$(cd $HOOKS_BASE_PATH && pwd) || HOOKBASE=$(cd ~/.hookit && pwd)
+
+hookit_mux() {
+    local HOOKDIR="$1" && shift
+    local HOOKNAME="$1" && shift
+
+    if [ -d $HOOKDIR/$HOOKTYPE.d ]; then
+        STDIN=$(cat /dev/stdin)
+
+        for HOOKNAME in `ls $HOOKDIR/$HOOKTYPE.d`; do
+            echo -n "- $HOOKTYPE/$HOOKNAME"
+
+            if [ ! -e $HOOKDIR/$HOOKTYPE.d/$HOOKNAME ]; then
+                echo " -> FAILED (hook could not be executed)" >&2
+                exit 1
+            fi
+
+            OUTPUT=`echo "$STDIN" | $HOOKDIR/$HOOKTYPE.d/$HOOKNAME "$@"`
+            EXITCODE=$?
+
+            if [ $EXITCODE != 0 ]; then
+                echo " -> FAILED"
+                [ -n "$OUTPUT" ] && echo "$OUTPUT" | sed 's/^/  /' && echo
+                exit $EXITCODE
+            else
+                echo " -> OK"
+                [ -n "$OUTPUT" ] && echo "$OUTPUT" | sed 's/^/  /' && echo
+            fi
+        done
+    fi
+
+    exit 0
+}
+
+enable_mux() {
+    local HOOKTYPE=$1
+    [ -e .git/hooks/$HOOKTYPE ] && die "Hook already exists!"
+    ln -s $(which hookit-mux) .git/hooks/$HOOKTYPE
+    mkdir -p .git/hooks/$HOOKTYPE.d
+}
+
+is_mux_enabled() {
+    local HOOKTYPE=$1
+    [ "$(readlink .git/hooks/$HOOKTYPE)" = "$(which hookit-mux)" ] && return 0
+    return 1
+}
+
+hookit_list_available() {
+    [ -d $HOOKBASE ] || die "Hooks base path does not exist: $HOOKBASE"
+
+    AVAILABLE_HOOKS=`_list_avaiable_hooks`
+    if [ -n "$AVAILABLE_HOOKS" ]; then
+        echo "Available hooks:"
+        echo "$AVAILABLE_HOOKS"
+    else
+        echo "No available hooks."
+    fi
+}
+
+_list_avaiable_hooks() {
+    for PLUGIN in `ls -1 $HOOKBASE`; do
+        [ -d $HOOKBASE/$PLUGIN ] || continue
+
+        for HOOKTYPE in $AVAILABLE_HOOKS; do
+            if [ -d $HOOKBASE/$PLUGIN/$HOOKTYPE ]; then
+                for HOOKNAME in `ls -1 $HOOKBASE/$PLUGIN/$HOOKTYPE`; do
+                    echo "- $PLUGIN/$HOOKTYPE/$HOOKNAME"
+                done
+                echo
+            fi
+        done
+    done
+}
+
+hookit_list_configured() {
+    CONFIGURED_HOOKS=`_list_configured_hooks`
+    if [ -n "$CONFIGURED_HOOKS" ]; then
+        echo "Configured hooks:"
+        echo "$CONFIGURED_HOOKS"
+    else
+        echo "No configured hooks."
+    fi
+}
+
+_list_configured_hooks() {
+    for HOOKTYPE in $AVAILABLE_HOOKS; do
+        if [ -e .git/hooks/$HOOKTYPE ]; then
+            if [ -L .git/hooks/$HOOKTYPE ] && is_mux_enabled $HOOKTYPE; then
+                for HOOKNAME in `ls -1 .git/hooks/$HOOKTYPE.d/`; do
+                    if [ -L .git/hooks/$HOOKTYPE.d/$HOOKNAME ]; then
+                        POINTSTO=$(readlink .git/hooks/$HOOKTYPE.d/$HOOKNAME)
+                        if [[ $POINTSTO == $HOOKBASE/*/$HOOKTYPE/* ]]; then
+                            echo "- ${POINTSTO#"$HOOKBASE/"}"
+                        else
+                            echo "> $HOOKTYPE/$HOOKNAME -> $POINTSTO"
+                        fi
+                    else
+                        echo "> $HOOKTYPE/$HOOKNAME"
+                    fi
+                done
+            else
+                echo "* $HOOKTYPE"
+                echo
+            fi
+            [ -e .git/hooks/$HOOKTYPE.d/* ] && echo
+        fi
+    done
+}
+
+hookit_remove() {
+    local HOOK=$1
+    local PLUGIN=$(dirname $(dirname $HOOK))
+    local HOOKTYPE=$(basename $(dirname $HOOK))
+    local HOOKNAME=$(basename $HOOK)
+
+    # Make sure we get a valid hook type.
+    if [ $HOOKTYPE = "." ]; then
+        if [ -e .git/hooks/$HOOKNAME ]; then
+            die "Refusing to delete main hook, run: mv .git/hooks/$HOOKNAME .git/hooks/$HOOKNAME.disabled"
+        else
+            die "Missing hook type."
+        fi
+    fi
+
+    echo $AVAILABLE_HOOKS | fgrep -q $HOOKTYPE || die "Not a valid hook type"
+
+    # Check if the target already exists?
+    [ -e .git/hooks/$HOOKTYPE.d/$HOOKNAME ] || die "Hook file doesn't exist!"
+
+    if [ -L .git/hooks/$HOOKTYPE.d/$HOOKNAME ]; then
+        POINTSTO=$(readlink .git/hooks/$HOOKTYPE.d/$HOOKNAME)
+        if [[ $POINTSTO == $HOOKBASE/$PLUGIN/$HOOKTYPE/* ]]; then
+            rm .git/hooks/$HOOKTYPE.d/$HOOKNAME
+        else
+            die "Refusing to delete non-standard hook, run: rm .git/hooks/$HOOKTYPE.d/$HOOKNAME"
+        fi
+    else
+        die "Refusing to delete non-standard hook, run: rm .git/hooks/$HOOKTYPE.d/$HOOKNAME"
+    fi
+}
+
+hookit_add() {
+    local HOOK=$1
+    local PLUGIN=$(dirname $(dirname $HOOK))
+    local HOOKTYPE=$(basename $(dirname $HOOK))
+    local HOOKNAME=$(basename $HOOK)
+
+    # Make sure we get a valid hook type.
+    [ $HOOKTYPE = "." ] && die "Missing hook type."
+    echo $AVAILABLE_HOOKS | fgrep -q $HOOKTYPE || die "Not a valid hook type"
+
+    # Check if the target already exists?
+    [ -e .git/hooks/$HOOKTYPE.d/$HOOKNAME ] && die "Hook file already exists!"
+
+    # Local, global or non-existent?
+    [ -e $HOOKBASE/$PLUGIN/$HOOKTYPE/$HOOKNAME ] || die "Hook does not exist."
+
+    # Check if we can or must enable mux?
+    if [ -e .git/hooks/$HOOKTYPE ]; then
+        [ -L .git/hooks/$HOOKTYPE ] && is_mux_enabled $HOOKTYPE || die "Base hook already exists!"
+    else
+        enable_mux $HOOKTYPE
+    fi
+
+    # Just fucking do it!
+    ln -s $HOOKBASE/$PLUGIN/$HOOKTYPE/$HOOKNAME .git/hooks/$HOOKTYPE.d/$HOOKNAME
+}

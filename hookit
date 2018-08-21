@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+#
+# hookit or not — git hook manager.
+# https://github.com/neonnoon/hookit
+#
+# The main command.
+
+set -euo pipefail
+
+source $(dirname $(realpath $(which hookit)))/hookit-common
+
+# General usage and per subcommand help.
+print_usage() {
+    local SUBCOMMAND=$1 && shift
+
+    case "$SUBCOMMAND" in
+        add)
+            echo "git hook add <hook>"
+            echo
+            echo "    Add a hook to the current git dir."
+            echo "    Available hooks can be shown with \"git hook list available\"."
+            echo
+            ;;
+        rm|remove)
+            echo "git hook rm <hook>"
+            echo
+            echo "    Remove a hook to the current git dir."
+            echo "    Configured hooks can be shown with \"git hook list configured\"."
+            echo "    Only standard hooks can be deleted like this."
+            echo
+            ;;
+        list)
+            echo "git hook list [available|configured]"
+            echo
+            echo "    List hooks."
+            echo
+            echo "    git hook list [configured]"
+            echo "            Lists all hooks configured for the current repo."
+            echo "            Configured hooks are shown as follows:"
+            echo "             ~ hookit hooks from $LOCAL_HOOKDIR"
+            echo "             - global hookit hooks"
+            echo "             * standard git hooks"
+            echo "             > non-hookit hooks"
+            echo
+            echo "    git hook list available"
+            echo "            Lists all available hooks."
+            echo
+            ;;
+        "")
+            echo "git hook [<subcommand>]"
+            echo
+            echo "    hookit or not — git hook manager."
+            echo
+            echo "Available subcommands:"
+            echo "    add     Add a hook to the current git dir."
+            echo "    rm      Remove a hook to the current git dir."
+            echo "    list    List all available and configured hooks."
+            echo "    help    Usage information, try git hook help <subcommand> for detailed info."
+            echo
+            ;;
+        *)
+            echo "Dunno how to help you with this!"
+            ;;
+    esac
+}
+
+die() {
+    local MESSAGE=$1 && shift
+
+    echo $MESSAGE >&2
+    exit 1
+}
+
+dieusage() {
+    local SUBCOMMAND=$1 && shift
+    local MESSAGE=$1 && shift
+
+    echo $MESSAGE >&2
+    echo
+    print_usage "$SUBCOMMAND"
+    exit 1
+}
+
+# Argument parsing, rather simple..
+# There's a command and a command arg, that's all.
+COMMAND=
+COMMANDARG=
+[ "$#" -gt 0 ] && COMMAND="$1" && shift
+[ "$#" -gt 0 ] && COMMANDARG="$1" && shift
+[ "$#" -gt 0 ] && dieusage "" "Too many arguments."
+
+# Executing subcommands.. all the guts n stuff is in hookit-common though.
+case "$COMMAND" in
+    help|"")
+        print_usage "$COMMANDARG" >&2
+        exit 1
+        ;;
+    list)
+        if [ "$COMMANDARG" = "available" ]; then
+            hookit_list_available
+        elif [ -z "$COMMANDARG" -o "$COMMANDARG" = "configured" ]; then
+            hookit_list_configured
+        else
+            dieusage "list" "Not a valid list command."
+        fi
+        ;;
+    add)
+        [ -n "$COMMANDARG" ] || dieusage "add" "Missing hook to add."
+        hookit_add $COMMANDARG
+        ;;
+    rm|remove)
+        [ -n "$COMMANDARG" ] || dieusage "add" "Missing hook to remove."
+        hookit_remove $COMMANDARG
+        ;;
+    *)
+        dieusage "" "Unknown command."
+        ;;
+esac
