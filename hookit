@@ -17,51 +17,47 @@ print_usage() {
         add)
             echo "git hook add <hook>"
             echo
-            echo "    Add a hook to the current git dir."
-            echo "    Available hooks can be shown with \"git hook list available\"."
-            echo
-            ;;
-        install)
-            echo "git hook install <repo>"
-            echo
-            echo "    Install a hook repo."
+            echo "    Adds a hook to the current git dir."
+            echo "    Available hooks can be shown with \"git hook ls -a\"."
             echo
             ;;
         rm|remove)
             echo "git hook rm <hook>"
             echo
-            echo "    Remove a hook to the current git dir."
-            echo "    Configured hooks can be shown with \"git hook list configured\"."
-            echo "    Only standard hooks can be deleted like this."
+            echo "    Removes a hook from the current git dir."
+            echo "    Configured hooks can be shown with \"git hook ls\"."
+            echo "    Only hookit-managed hooks can be deleted like this."
             echo
             ;;
-        list)
-            echo "git hook list [available|configured]"
+        ls|list)
+            echo "git hook ls [-a]"
             echo
-            echo "    List hooks."
+            echo "    Lists all hooks configured for the current repo."
+            echo "    Configured hooks are shown as follows:"
+            echo "      * standard git hooks"
+            echo "      - hookit-managed hooks"
+            echo "      > manually linked hooks"
             echo
-            echo "    git hook list [configured]"
-            echo "            Lists all hooks configured for the current repo."
-            echo "            Configured hooks are shown as follows:"
-            echo "             ~ hookit hooks from $LOCAL_HOOKDIR"
-            echo "             - global hookit hooks"
-            echo "             * standard git hooks"
-            echo "             > non-hookit hooks"
-            echo
-            echo "    git hook list available"
-            echo "            Lists all available hooks."
+            echo "    \"git hook ls -a\" lists all available hooks."
             echo
             ;;
+        install)
+            echo "git hook install <repo>"
+            echo
+            echo "    Installs a hook repo and makes its hooks available to be added."
+            echo
+            ;;
+
         "")
             echo "git hook [<subcommand>]"
             echo
             echo "    hookit or not — git hook manager."
             echo
             echo "Available subcommands:"
-            echo "    add     Add a hook to the current git dir."
-            echo "    rm      Remove a hook to the current git dir."
-            echo "    list    List all available and configured hooks."
             echo "    help    Usage information, try git hook help <subcommand> for detailed info."
+            echo "    add     Add a hook to the current git dir."
+            echo "    rm      Remove a hook from the current git dir."
+            echo "    ls      List all available and configured hooks."
             echo "    install Install a hook repo."
             echo
             ;;
@@ -102,8 +98,8 @@ case "$COMMAND" in
         print_usage "$COMMANDARG" >&2
         exit 1
         ;;
-    list)
-        if [ "$COMMANDARG" = "available" ]; then
+    ls|list)
+        if [ "$COMMANDARG" = "available" -o "$COMMANDARG" = "-a" ]; then
             hookit_list_available
         elif [ -z "$COMMANDARG" -o "$COMMANDARG" = "configured" ]; then
             hookit_list_configured
@@ -115,7 +111,7 @@ case "$COMMAND" in
         [ -n "$COMMANDARG" ] || dieusage "add" "Missing hook to add."
         hookit_add $COMMANDARG
         ;;
-    install)
+    i|install)
         [ -n "$COMMANDARG" ] || dieusage "install" "Missing repo location."
         hookit_install "$COMMANDARG"
         ;;

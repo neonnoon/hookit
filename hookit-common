@@ -15,7 +15,7 @@ HOOKITRC=~/.hookitrc
 [ -f $HOOKITRC ] && source $HOOKITRC
 
 # Some global stuffs, config kinda thing..
-AVAILABLE_HOOKS="applypatch-msg commit-msg fsmonitor-watchman post-update pre-applypatch pre-commit pre-push pre-rebase pre-receive prepare-commit-msg update"
+AVAILABLE_HOOKS="applypatch-msg commit-msg fsmonitor-watchman post-update pre-applypatch pre-commit pre-push pre-rebase pre-receive prepare-commit-msg update post-checkout post-merge"
 [ -n "$HOOKS_BASE_PATH" ] && HOOKBASE=$(cd $HOOKS_BASE_PATH && pwd) || HOOKBASE=$(cd ~/.hookit && pwd)
 
 hookit_mux() {
@@ -101,7 +101,6 @@ _list_avaiable_hooks() {
                 for HOOKNAME in `ls -1 $HOOKBASE/$PLUGIN/$HOOKTYPE`; do
                     echo "- $PLUGIN/$HOOKTYPE/$HOOKNAME"
                 done
-                echo
             fi
         done
     done
@@ -139,9 +138,7 @@ _list_configured_hooks() {
                 done
             else
                 echo "* $HOOKTYPE"
-                echo
             fi
-            [ -e .git/hooks/$HOOKTYPE.d/* ] && echo
         fi
     done
 }
