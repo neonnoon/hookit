@@ -26,15 +26,25 @@ hookit_mux() {
         STDIN=$(cat /dev/stdin)
 
         for HOOKNAME in `ls $HOOKDIR/$HOOKTYPE.d`; do
-            echo -n "- $HOOKTYPE/$HOOKNAME"
+            POINTSTO=$(readlink .git/hooks/$HOOKTYPE.d/$HOOKNAME)
+            if [[ $POINTSTO == $HOOKBASE/*/$HOOKTYPE/* ]]; then
+                echo -n "- ${POINTSTO#"$HOOKBASE/"}"
+            else
+                echo -n "- $HOOKTYPE/$HOOKNAME"
+            fi
 
             if [ ! -e $HOOKDIR/$HOOKTYPE.d/$HOOKNAME ]; then
-                echo " -> FAILED (hook could not be executed)" >&2
+                echo " -> FAILED (missing)" >&2
                 exit 1
             fi
 
-            OUTPUT=`echo "$STDIN" | $HOOKDIR/$HOOKTYPE.d/$HOOKNAME "$@"`
-            EXITCODE=$?
+            if [ ! -x $HOOKDIR/$HOOKTYPE.d/$HOOKNAME ]; then
+                echo " -> FAILED (not executable)" >&2
+                exit 1
+            fi
+
+            EXITCODE=0
+            OUTPUT=`echo "$STDIN" | $HOOKDIR/$HOOKTYPE.d/$HOOKNAME "$@"` || EXITCODE=$?
 
             if [ $EXITCODE != 0 ]; then
                 echo " -> FAILED"
@@ -48,6 +58,13 @@ hookit_mux() {
     fi
 
     exit 0
+}
+
+hookit_install() {
+    local LOCATION=$1
+
+    [ -d $HOOKBASE ] || die "Hooks base path does not exist: $HOOKBASE"
+    (cd $HOOKBASE && git clone $LOCATION)
 }
 
 enable_mux() {
@@ -108,7 +125,11 @@ _list_configured_hooks() {
                     if [ -L .git/hooks/$HOOKTYPE.d/$HOOKNAME ]; then
                         POINTSTO=$(readlink .git/hooks/$HOOKTYPE.d/$HOOKNAME)
                         if [[ $POINTSTO == $HOOKBASE/*/$HOOKTYPE/* ]]; then
-                            echo "- ${POINTSTO#"$HOOKBASE/"}"
+                            if [ -f .git/hooks/$HOOKTYPE.d/$HOOKNAME ]; then
+                                echo "- ${POINTSTO#"$HOOKBASE/"}"
+                            else
+                                echo "- ${POINTSTO#"$HOOKBASE/"} [orphaned]"
+                            fi
                         else
                             echo "> $HOOKTYPE/$HOOKNAME -> $POINTSTO"
                         fi
@@ -143,7 +164,7 @@ hookit_remove() {
     echo $AVAILABLE_HOOKS | fgrep -q $HOOKTYPE || die "Not a valid hook type"
 
     # Check if the target already exists?
-    [ -e .git/hooks/$HOOKTYPE.d/$HOOKNAME ] || die "Hook file doesn't exist!"
+    [ -e .git/hooks/$HOOKTYPE.d/$HOOKNAME -o -L .git/hooks/$HOOKTYPE.d/$HOOKNAME ] || die "Hook file doesn't exist!"
 
     if [ -L .git/hooks/$HOOKTYPE.d/$HOOKNAME ]; then
         POINTSTO=$(readlink .git/hooks/$HOOKTYPE.d/$HOOKNAME)

@@ -21,6 +21,12 @@ print_usage() {
             echo "    Available hooks can be shown with \"git hook list available\"."
             echo
             ;;
+        install)
+            echo "git hook install <repo>"
+            echo
+            echo "    Install a hook repo."
+            echo
+            ;;
         rm|remove)
             echo "git hook rm <hook>"
             echo
@@ -56,6 +62,7 @@ print_usage() {
             echo "    rm      Remove a hook to the current git dir."
             echo "    list    List all available and configured hooks."
             echo "    help    Usage information, try git hook help <subcommand> for detailed info."
+            echo "    install Install a hook repo."
             echo
             ;;
         *)
@@ -107,6 +114,10 @@ case "$COMMAND" in
     add)
         [ -n "$COMMANDARG" ] || dieusage "add" "Missing hook to add."
         hookit_add $COMMANDARG
+        ;;
+    install)
+        [ -n "$COMMANDARG" ] || dieusage "install" "Missing repo location."
+        hookit_install "$COMMANDARG"
         ;;
     rm|remove)
         [ -n "$COMMANDARG" ] || dieusage "add" "Missing hook to remove."

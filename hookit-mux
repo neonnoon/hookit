@@ -12,4 +12,4 @@ source $(dirname $(realpath $(which hookit)))/hookit-common
 HOOKDIR=$(dirname $0)
 HOOKTYPE=$(basename $0)
 
-hookit_mux "$HOOKDIR" "$HOOKTYPE"
+hookit_mux "$HOOKDIR" "$HOOKTYPE" "$@"
