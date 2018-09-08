@@ -44,7 +44,7 @@ hookit_mux() {
             fi
 
             EXITCODE=0
-            OUTPUT=`echo "$STDIN" | $HOOKDIR/$HOOKTYPE.d/$HOOKNAME "$@"` || EXITCODE=$?
+            OUTPUT=`echo "$STDIN" | $HOOKDIR/$HOOKTYPE.d/$HOOKNAME "$@" 2>&1` || EXITCODE=$?
 
             if [ $EXITCODE != 0 ]; then
                 echo " -> FAILED"
