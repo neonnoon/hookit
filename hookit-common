@@ -63,7 +63,9 @@ hookit_mux() {
 hookit_install() {
     local LOCATION=$1
 
-    [ -d $HOOKBASE ] || die "Hooks base path does not exist: $HOOKBASE"
+    if [ ! -d $HOOKBASE ]; then
+        mkdir -p $HOOKBASE
+    fi
     (cd $HOOKBASE && git clone $LOCATION)
 }
 
@@ -80,26 +82,37 @@ is_mux_enabled() {
     return 1
 }
 
-hookit_list_available() {
+hookit_find_available() {
+    local query=$1 &&
     [ -d $HOOKBASE ] || die "Hooks base path does not exist: $HOOKBASE"
 
-    AVAILABLE_HOOKS=`_list_avaiable_hooks`
+    AVAILABLE_HOOKS=`_find_avaiable_hooks`
     if [ -n "$AVAILABLE_HOOKS" ]; then
-        echo "Available hooks:"
-        echo "$AVAILABLE_HOOKS"
+        if [ -n "$query" ]; then
+            MATCHING_HOOKS=`echo "$AVAILABLE_HOOKS" | egrep $query`
+            if [ -n "$MATCHING_HOOKS" ]; then
+                echo "Matching hooks:"
+                echo "$MATCHING_HOOKS" | sed 's/^/  /'
+            else
+                echo "No matching hooks found."
+            fi
+        else
+            echo "Available hooks:"
+            echo "$AVAILABLE_HOOKS" | sed 's/^/  /'
+        fi
     else
         echo "No available hooks."
     fi
 }
 
-_list_avaiable_hooks() {
+_find_avaiable_hooks() {
     for PLUGIN in `ls -1 $HOOKBASE`; do
         [ -d $HOOKBASE/$PLUGIN ] || continue
 
         for HOOKTYPE in $AVAILABLE_HOOKS; do
             if [ -d $HOOKBASE/$PLUGIN/$HOOKTYPE ]; then
                 for HOOKNAME in `ls -1 $HOOKBASE/$PLUGIN/$HOOKTYPE`; do
-                    echo "- $PLUGIN/$HOOKTYPE/$HOOKNAME"
+                    echo "$PLUGIN/$HOOKTYPE/$HOOKNAME"
                 done
             fi
         done

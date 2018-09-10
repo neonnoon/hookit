@@ -30,7 +30,7 @@ print_usage() {
             echo
             ;;
         ls|list)
-            echo "git hook ls [-a]"
+            echo "git hook ls"
             echo
             echo "    Lists all hooks configured for the current repo."
             echo "    Configured hooks are shown as follows:"
@@ -38,7 +38,11 @@ print_usage() {
             echo "      - hookit-managed hooks"
             echo "      > manually linked hooks"
             echo
-            echo "    \"git hook ls -a\" lists all available hooks."
+            ;;
+        find)
+            echo "git hook find [<regex>]"
+            echo
+            echo "    Finds all available hooks, optionally filtered by a regex."
             echo
             ;;
         install)
@@ -57,7 +61,8 @@ print_usage() {
             echo "    help    Usage information, try git hook help <subcommand> for detailed info."
             echo "    add     Add a hook to the current git dir."
             echo "    rm      Remove a hook from the current git dir."
-            echo "    ls      List all available and configured hooks."
+            echo "    ls      List all configured hooks."
+            echo "    find    Find available hooks."
             echo "    install Install a hook repo."
             echo
             ;;
@@ -98,14 +103,12 @@ case "$COMMAND" in
         print_usage "$COMMANDARG" >&2
         exit 1
         ;;
+    find)
+        hookit_find_available "$COMMANDARG"
+        ;;
     ls|list)
-        if [ "$COMMANDARG" = "available" -o "$COMMANDARG" = "-a" ]; then
-            hookit_list_available
-        elif [ -z "$COMMANDARG" -o "$COMMANDARG" = "configured" ]; then
-            hookit_list_configured
-        else
-            dieusage "list" "Not a valid list command."
-        fi
+        [ -z "$COMMANDARG" ] || dieusage "ls" "Not a valid list command."
+        hookit_list_configured
         ;;
     add)
         [ -n "$COMMANDARG" ] || dieusage "add" "Missing hook to add."
