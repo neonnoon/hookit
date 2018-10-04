@@ -172,9 +172,9 @@ _list_configured_hooks() {
                         POINTSTO=$(readlink .git/hooks/$HOOKTYPE.d/$HOOKNAME)
                         if [[ $POINTSTO == $HOOKBASE/*/$HOOKTYPE/* ]]; then
                             if [ -f .git/hooks/$HOOKTYPE.d/$HOOKNAME ]; then
-                                echo "- ${POINTSTO#"$HOOKBASE/"}"
+                                echo "  ${POINTSTO#"$HOOKBASE/"}"
                             else
-                                echo "- ${POINTSTO#"$HOOKBASE/"} [orphaned]"
+                                echo "  ${POINTSTO#"$HOOKBASE/"} [orphaned]"
                             fi
                         else
                             echo "> $HOOKTYPE/$HOOKNAME -> $POINTSTO"
