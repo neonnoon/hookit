@@ -18,6 +18,42 @@ HOOKITRC=~/.hookitrc
 AVAILABLE_HOOKS="applypatch-msg commit-msg fsmonitor-watchman post-update pre-applypatch pre-commit pre-push pre-rebase pre-receive prepare-commit-msg update post-checkout post-merge"
 [ -n "$HOOKS_BASE_PATH" ] && HOOKBASE=$(cd $HOOKS_BASE_PATH && pwd) || HOOKBASE=$(cd ~/.hookit && pwd)
 
+
+printbyline() {
+    prompt=$1 && shift
+    input=$1 && shift
+    cmd="$@"
+
+    # 3>&2 2>&1 1>&3
+    echo "$input" | $cmd | while IFS= read -r line; do
+        printf '\033[2K\r'
+        printf "$prompt > "
+        printf "$line"
+    done
+    retcode=${PIPESTATUS[1]}
+    printf '\033[2K\r'
+
+    if [ $retcode != 0 ]; then
+        printf "$prompt ✘\n"
+    else
+        printf "$prompt ✔\n"
+    fi
+    return $retcode
+}
+
+execprint() {
+    prompt=$1 && shift
+    input=$1 && shift
+    command="$@"
+
+    exec 3>&1
+    retcode=0
+    output=$( printbyline "$prompt" "$input" "$command" 2>&1 1>&3 | sed 's/^/  /'; exit ${PIPESTATUS[0]} ) || retcode=$?
+
+    [ -z "$output" ] || echo "$output"
+    return $retcode
+}
+
 hookit_mux() {
     local HOOKDIR="$1" && shift
     local HOOKNAME="$1" && shift
@@ -26,34 +62,29 @@ hookit_mux() {
         STDIN=$(cat /dev/stdin)
 
         for HOOKNAME in `ls $HOOKDIR/$HOOKTYPE.d`; do
+            hookdisplay=
             POINTSTO=$(readlink .git/hooks/$HOOKTYPE.d/$HOOKNAME)
             if [[ $POINTSTO == $HOOKBASE/*/$HOOKTYPE/* ]]; then
-                echo -n "- ${POINTSTO#"$HOOKBASE/"}"
+                hookdisplay=${POINTSTO#"$HOOKBASE/"}
             else
-                echo -n "- $HOOKTYPE/$HOOKNAME"
+                hookdisplay=$HOOKTYPE/$HOOKNAME
             fi
 
             if [ ! -e $HOOKDIR/$HOOKTYPE.d/$HOOKNAME ]; then
-                echo " -> FAILED (missing)" >&2
+                echo "• $hookdisplay ✘" >&2
+                echo "  missing hook"
                 exit 1
             fi
 
             if [ ! -x $HOOKDIR/$HOOKTYPE.d/$HOOKNAME ]; then
-                echo " -> FAILED (not executable)" >&2
+                echo "• $hookdisplay ✘" >&2
+                echo "  hook not executable"
                 exit 1
             fi
 
-            EXITCODE=0
-            OUTPUT=`echo "$STDIN" | $HOOKDIR/$HOOKTYPE.d/$HOOKNAME "$@" 2>&1` || EXITCODE=$?
-
-            if [ $EXITCODE != 0 ]; then
-                echo " -> FAILED"
-                [ -n "$OUTPUT" ] && echo "$OUTPUT" | sed 's/^/  /' && echo
-                exit $EXITCODE
-            else
-                echo " -> OK"
-                [ -n "$OUTPUT" ] && echo "$OUTPUT" | sed 's/^/  /' && echo
-            fi
+            execprint "• $hookdisplay" "$STDIN" $HOOKDIR/$HOOKTYPE.d/$HOOKNAME "$@"
+            EXITCODE=$?
+            [ $EXITCODE != 0 ] && exit $EXITCODE
         done
     fi
 
