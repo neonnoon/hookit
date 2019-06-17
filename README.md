@@ -16,6 +16,10 @@ brew tap neonnoon/brew https://github.com/neonnoon/brew
 brew install hookit
 ```
 
+#### Manual install
+
+If you don't want to use Homebrew, just clone this repo and make sure it's in your `PATH`.
+
 ### Usage
 
 Now this doesn't do much yet. You'll need a set of hooks, for example, [anylint](https://github.com/neonnoon/anylint). They are installed like so:
