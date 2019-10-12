@@ -103,6 +103,26 @@ hookit_install() {
     (cd $HOOKBASE && git clone $LOCATION)
 }
 
+hookit_update() {
+    local LOCATION=$1
+
+    if [ "$LOCATION" == "all" ]; then
+        for REPO in `ls $HOOKBASE`; do
+            echo $REPO
+            (cd $HOOKBASE/$REPO && git pull | sed 's/^/  /')
+            echo
+        done
+    else
+        if [ -d $HOOKBASE/$LOCATION ]; then
+            echo $LOCATION
+            (cd $HOOKBASE/$LOCATION && git pull | sed 's/^/  /')
+        else
+            die "No such repo: $LOCATION, install it first?"
+        fi
+    fi
+
+}
+
 enable_mux() {
     local HOOKTYPE=$1
     [ -e .git/hooks/$HOOKTYPE ] && die "Hook already exists!"

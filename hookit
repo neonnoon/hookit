@@ -51,6 +51,12 @@ print_usage() {
             echo "    Installs a hook repo and makes its hooks available to be added."
             echo
             ;;
+        update|upgrade)
+            echo "git hook update [<repo>]"
+            echo
+            echo "    Updates all hook repos. Pass the repo name to update a single one."
+            echo
+            ;;
 
         "")
             echo "git hook [<subcommand>]"
@@ -64,6 +70,7 @@ print_usage() {
             echo "    ls      List all configured hooks."
             echo "    find    Find available hooks."
             echo "    install Install a hook repo."
+            echo "    update  Update one or all repos."
             echo
             ;;
         *)
@@ -117,6 +124,10 @@ case "$COMMAND" in
     i|install)
         [ -n "$COMMANDARG" ] || dieusage "install" "Missing repo location."
         hookit_install "$COMMANDARG"
+        ;;
+    u|update|upgrade)
+        [ -n "$COMMANDARG" ] || COMMANDARG="all"
+        hookit_update "$COMMANDARG"
         ;;
     rm|remove)
         [ -n "$COMMANDARG" ] || dieusage "add" "Missing hook to remove."
