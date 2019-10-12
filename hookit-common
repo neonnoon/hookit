@@ -30,7 +30,7 @@ printbyline() {
     echo "$input" | $cmd | while IFS= read -r line; do
         printf "\r${ceol}"
         printf "$prompt > "
-        printf "$line"
+        printf "%s" "$line"
     done
     retcode=${PIPESTATUS[1]}
     printf "\r${ceol}"
