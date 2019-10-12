@@ -16,8 +16,11 @@ HOOKITRC=~/.hookitrc
 
 # Some global stuffs, config kinda thing..
 AVAILABLE_HOOKS="applypatch-msg commit-msg fsmonitor-watchman post-update pre-applypatch pre-commit pre-push pre-rebase pre-receive prepare-commit-msg update post-checkout post-merge"
-[ -n "$HOOKS_BASE_PATH" ] && HOOKBASE=$(cd $HOOKS_BASE_PATH && pwd) || HOOKBASE=$(cd ~/.hookit && pwd)
+[ -n "$HOOKS_BASE_PATH" ] && HOOKBASE=$(cd $HOOKS_BASE_PATH && pwd) || HOOKBASE=$(echo ~/.hookit)
 
+if [ ! -d $HOOKBASE ]; then
+    mkdir -p $HOOKBASE
+fi
 
 printbyline() {
     prompt=$1 && shift
@@ -97,9 +100,6 @@ hookit_mux() {
 hookit_install() {
     local LOCATION=$1
 
-    if [ ! -d $HOOKBASE ]; then
-        mkdir -p $HOOKBASE
-    fi
     (cd $HOOKBASE && git clone $LOCATION)
 }
 
@@ -118,7 +118,6 @@ is_mux_enabled() {
 
 hookit_find_available() {
     local query=$1 &&
-    [ -d $HOOKBASE ] || die "Hooks base path does not exist: $HOOKBASE"
 
     AVAILABLE_HOOKS=`_find_avaiable_hooks`
     if [ -n "$AVAILABLE_HOOKS" ]; then
