@@ -130,7 +130,7 @@ case "$COMMAND" in
         hookit_update "$COMMANDARG"
         ;;
     rm|remove)
-        [ -n "$COMMANDARG" ] || dieusage "add" "Missing hook to remove."
+        [ -n "$COMMANDARG" ] || dieusage "rm" "Missing hook to remove."
         hookit_remove $COMMANDARG
         ;;
     *)
