@@ -12,8 +12,7 @@ All this is done with the `git hook` command.
 
 The easiest way to install `hookit` is with [Homebrew](http://brew.sh):
 ```
-brew tap neonnoon/brew https://github.com/neonnoon/brew
-brew install hookit
+brew install neonnoon/formula/hookit
 ```
 
 #### Manual install
@@ -22,9 +21,9 @@ If you don't want to use Homebrew, just clone this repo and make sure it's in yo
 
 ### Usage
 
-Now this doesn't do much yet. You'll need a set of hooks, for example, [anylint](https://github.com/neonnoon/anylint). They are installed like so:
+Now this doesn't do much yet. You'll need a set of hooks, for example, [anylint](https://github.com/neonnoon/hooks-basic). They are installed like so:
 ```
-git hook install https://github.com/neonnoon/anylint
+git hook install https://github.com/neonnoon/hooks-basic
 ```
 
 That makes all its hooks available:
@@ -34,5 +33,5 @@ git hook find
 
 Hooks can then be added to a repository, e.g.:
 ```
-git hook add anylint/pre-commit/eslint
+git hook add hooks-basic/pre-commit/conflict
 ```
