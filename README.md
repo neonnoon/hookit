@@ -21,7 +21,7 @@ If you don't want to use Homebrew, just clone this repo and make sure it's in yo
 
 ### Usage
 
-Now this doesn't do much yet. You'll need a set of hooks, for example, [anylint](https://github.com/neonnoon/hooks-basic). They are installed like so:
+Now this doesn't do much yet. You'll need a set of hooks, for example, [hooks-basic](https://github.com/neonnoon/hooks-basic). They are installed like so:
 ```
 git hook install https://github.com/neonnoon/hooks-basic
 ```
