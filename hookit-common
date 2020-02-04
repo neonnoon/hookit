@@ -67,7 +67,7 @@ hookit_mux() {
     if [ -d $HOOKDIR/$HOOKTYPE.d ]; then
         STDIN=$(cat /dev/stdin)
 
-        for HOOKNAME in `ls $HOOKDIR/$HOOKTYPE.d`; do
+        for HOOKNAME in `gls --quoting-style=shell-escape $HOOKDIR/$HOOKTYPE.d`; do
             hookdisplay=
             POINTSTO=$(readlink .git/hooks/$HOOKTYPE.d/$HOOKNAME)
             if [[ $POINTSTO == $HOOKBASE/*/$HOOKTYPE/* ]]; then
@@ -107,7 +107,7 @@ hookit_update() {
     local LOCATION=$1
 
     if [ "$LOCATION" == "all" ]; then
-        for REPO in `ls $HOOKBASE`; do
+        for REPO in `gls --quoting-style=shell-escape $HOOKBASE`; do
             echo $REPO
             (cd $HOOKBASE/$REPO && git pull | sed 's/^/  /')
             echo
@@ -159,12 +159,12 @@ hookit_find_available() {
 }
 
 _find_avaiable_hooks() {
-    for PLUGIN in `ls -1 $HOOKBASE`; do
+    for PLUGIN in `gls --quoting-style=shell-escape $HOOKBASE`; do
         [ -d $HOOKBASE/$PLUGIN ] || continue
 
         for HOOKTYPE in $AVAILABLE_HOOKS; do
             if [ -d $HOOKBASE/$PLUGIN/$HOOKTYPE ]; then
-                for HOOKNAME in `ls -1 $HOOKBASE/$PLUGIN/$HOOKTYPE`; do
+                for HOOKNAME in `gls --quoting-style=shell-escape $HOOKBASE/$PLUGIN/$HOOKTYPE`; do
                     echo "$PLUGIN/$HOOKTYPE/$HOOKNAME"
                 done
             fi
@@ -186,7 +186,7 @@ _list_configured_hooks() {
     for HOOKTYPE in $AVAILABLE_HOOKS; do
         if [ -e .git/hooks/$HOOKTYPE ]; then
             if [ -L .git/hooks/$HOOKTYPE ] && is_mux_enabled $HOOKTYPE; then
-                for HOOKNAME in `ls -1 .git/hooks/$HOOKTYPE.d/`; do
+                for HOOKNAME in `gls --quoting-style=shell-escape .git/hooks/$HOOKTYPE.d/`; do
                     if [ -L .git/hooks/$HOOKTYPE.d/$HOOKNAME ]; then
                         POINTSTO=$(readlink .git/hooks/$HOOKTYPE.d/$HOOKNAME)
                         if [[ $POINTSTO == $HOOKBASE/*/$HOOKTYPE/* ]]; then
